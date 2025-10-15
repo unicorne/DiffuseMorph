@@ -15,6 +15,8 @@ class Visualizer():
         self.name = opt['name']
         self.opt = opt
         self.saved = False
+        self.display_id = 1 #opt['display_id']
+
         if self.display_id > 0:
             import visdom
             self.vis = visdom.Visdom(port=opt['display_port'])

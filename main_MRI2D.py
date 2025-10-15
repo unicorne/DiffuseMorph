@@ -1,3 +1,8 @@
+import sys
+path_to_pip_installs = "/tmp/test_env"
+if path_to_pip_installs not in sys.path:
+    sys.path.insert(0, path_to_pip_installs)
+
 import torch
 import data as Data
 import model as Model
@@ -10,8 +15,6 @@ import time
 from util.visualizer import Visualizer
 from PIL import Image
 import numpy as np
-
-# test comment
 
 def save_image(image_numpy, image_path):
     image_pil = Image.fromarray(image_numpy.astype('uint8'))
@@ -46,12 +49,12 @@ if __name__ == "__main__":
     for phase, dataset_opt in opt['datasets'].items():
         if phase != opt['phase']: continue
         if opt['phase'] == 'train':
+            train_set = Data.create_dataset_2D(dataset_opt, phase=phase, mri=True)
             batchSize = opt['datasets']['train']['batch_size']
-            train_set = Data.create_dataset_2D(dataset_opt, phase, mri=True)
             train_loader = Data.create_dataloader(train_set, dataset_opt, phase)
             training_iters = int(ceil(train_set.data_len / float(batchSize)))
         elif opt['phase'] == 'test':
-            test_set = Data.create_dataset_2D(dataset_opt, phase, mri=True)
+            test_set = Data.create_dataset_2D(dataset_opt, phase=phase, mri=True)
             test_loader = Data.create_dataloader(test_set, dataset_opt, phase)
     logger.info('Initial Dataset Finished')
 
@@ -105,9 +108,9 @@ if __name__ == "__main__":
         # save model
         logger.info('End of training.')
     else:
-        from model.deformation_net_2D import Dense2DSpatialTransformer
-        stn = Dense2DSpatialTransformer()
-        registTime = []
+        #
+        # --- MODIFICATIONS FOR GRAYSCALE DATA START HERE ---
+        #
         logger.info('Begin Model Evaluation.')
         idx = 0
         result_path = '{}'.format(opt['path']['results'])
@@ -119,8 +122,8 @@ if __name__ == "__main__":
 
             data_origin = test_data['M'].squeeze().cpu().numpy()
             data_fixed = test_data['F'].squeeze().cpu().numpy()
-            data_originRGB = test_data['MC'].squeeze().cpu().numpy()
-            data_fixedRGB = test_data['FC'].squeeze().cpu().numpy()
+            # data_originRGB = test_data['MC'].squeeze().cpu().numpy() # REMOVED
+            # data_fixedRGB = test_data['FC'].squeeze().cpu().numpy() # REMOVED
             time1 = time.time()
             diffusion.feed_data(test_data)
 
@@ -130,6 +133,7 @@ if __name__ == "__main__":
             diffusion.test_registration(continuous=True)
             time2 = time.time()
 
+            # Convert from [-1, 1] to [0, 255] for saving
             data_origin = (data_origin+1)/2. * 255
             data_fixed = (data_fixed + 1) / 2. * 255
             savePath = os.path.join(result_path, '%s_TO_%s_mov.png' % (dataXinfo, dataYinfo))
@@ -138,7 +142,7 @@ if __name__ == "__main__":
             save_image(data_fixed, savePath)
 
             visuals = diffusion.get_current_generation()
-            sample_data = visuals['MF'].squeeze().numpy()
+            sample_data = visuals['M'].squeeze().numpy()
             for isamp in range(0, sample_data.shape[0], 6):
                 savePath = os.path.join(result_path, '%s_TO_%s_sample_%d.png' % (dataXinfo, dataYinfo, isamp))
                 synthetic_data = sample_data[isamp]
@@ -153,25 +157,29 @@ if __name__ == "__main__":
             synthetic_data = synthetic_data * 255
             save_image(synthetic_data, savePath)
 
-            savePath = os.path.join(result_path, 'RGB_%s_TO_%s_mov.png' % (dataXinfo, dataYinfo))
-            save_image(data_originRGB, savePath)
-            savePath = os.path.join(result_path, 'RGB_%s_TO_%s_fix.png' % (dataXinfo, dataYinfo))
-            save_image(data_fixedRGB, savePath)
+            # --- This entire block for processing RGB images has been commented out ---
+            #
+            # savePath = os.path.join(result_path, 'RGB_%s_TO_%s_mov.png' % (dataXinfo, dataYinfo))
+            # save_image(data_originRGB, savePath)
+            # savePath = os.path.join(result_path, 'RGB_%s_TO_%s_fix.png' % (dataXinfo, dataYinfo))
+            # save_image(data_fixedRGB, savePath)
 
-            visuals = diffusion.get_current_registration()
-            nsamp = visuals['contF'].shape[0]
-            for isamp in range(0, nsamp):
-                real_C = test_data['MC'].squeeze()
-                real_C = real_C.permute(2, 0, 1).unsqueeze(0).cuda()
-                out_y0 = stn(real_C[:, 0:1], visuals['contF'][isamp:isamp+1].cuda())
-                out_y1 = stn(real_C[:, 1:2], visuals['contF'][isamp:isamp+1].cuda())
-                out_y2 = stn(real_C[:, 2:3], visuals['contF'][isamp:isamp+1].cuda())
-                regist_RGB = torch.cat([out_y0, out_y1, out_y2], dim=1)
-                regist_dataRGB = regist_RGB.squeeze().cpu().numpy().transpose(1, 2, 0)
-                savePath = os.path.join(result_path, 'RGB_%s_TO_%s_regist_%.2f.png' % (dataXinfo, dataYinfo, (isamp+1)/nsamp))
-                save_image(regist_dataRGB, savePath)
+            # visuals = diffusion.get_current_registration()
+            # nsamp = visuals['contF'].shape[0]
+            # from model.deformation_net_2D import Dense2DSpatialTransformer
+            # stn = Dense2DSpatialTransformer()
+            # for isamp in range(0, nsamp):
+            #     real_C = test_data['MC'].squeeze()
+            #     real_C = real_C.permute(2, 0, 1).unsqueeze(0).cuda()
+            #     out_y0 = stn(real_C[:, 0:1], visuals['contF'][isamp:isamp+1].cuda())
+            #     out_y1 = stn(real_C[:, 1:2], visuals['contF'][isamp:isamp+1].cuda())
+            #     out_y2 = stn(real_C[:, 2:3], visuals['contF'][isamp:isamp+1].cuda())
+            #     regist_RGB = torch.cat([out_y0, out_y1, out_y2], dim=1)
+            #     regist_dataRGB = regist_RGB.squeeze().cpu().numpy().transpose(1, 2, 0)
+            #     savePath = os.path.join(result_path, 'RGB_%s_TO_%s_regist_%.2f.png' % (dataXinfo, dataYinfo, (isamp+1)/nsamp))
+            #     save_image(regist_dataRGB, savePath)
 
-            numer = np.sum((data_fixedRGB - regist_dataRGB) ** 2)
-            denom = np.sum((data_fixedRGB) ** 2 )
-            nmse = numer / denom
-            print('NMSE_%s_TO_%s: %.4f' % (dataXinfo, dataYinfo, nmse))
+            # numer = np.sum((data_fixedRGB - regist_dataRGB) ** 2)
+            # denom = np.sum((data_fixedRGB) ** 2 )
+            # nmse = numer / denom
+            # print('NMSE_%s_TO_%s: %.4f' % (dataXinfo, dataYinfo, nmse))

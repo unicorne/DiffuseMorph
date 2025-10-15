@@ -1,0 +1,6 @@
+dataset/*
+DATASET/*
+DATASET/**
+experiments/*
+*.pyc
+slurm/*
