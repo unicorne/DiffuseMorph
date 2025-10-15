@@ -11,6 +11,8 @@ from util.visualizer import Visualizer
 from PIL import Image
 import numpy as np
 
+# test comment
+
 def save_image(image_numpy, image_path):
     image_pil = Image.fromarray(image_numpy.astype('uint8'))
     image_pil.save(image_path)
