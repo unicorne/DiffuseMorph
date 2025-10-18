@@ -7,7 +7,7 @@ import os
 import numpy as np
 from PIL import Image
 
-def prepare_data(input_path, output_path, moving_contrast, fixed_contrast):
+def prepare_data(input_path, output_path, moving_contrast, fixed_contrast, masks=False):
     """
     Prepares the data for the DiffuseMorph model by converting .npy files to .png images.
 
@@ -20,12 +20,26 @@ def prepare_data(input_path, output_path, moving_contrast, fixed_contrast):
 
     for split in ['train', 'val', 'test']:
         # Create output directories
-        output_split_path = os.path.join(output_path, split)
+        print(f"Processing {split} data...")
+        if masks:
+            split_output = split + '_masks'
+        else:
+            split_output = split
+        output_split_path = os.path.join(output_path, split_output)
+        print(f"Saving to {output_split_path}")
         os.makedirs(output_split_path, exist_ok=True)
 
         # Load data from .npy files
-        moving_data_path = os.path.join(input_path, split, moving_contrast + '.npy')
-        fixed_data_path = os.path.join(input_path, split, fixed_contrast + '.npy')
+        if masks:
+            moving_contrast_load = moving_contrast + '_masks'
+            fixed_contrast_load = fixed_contrast + '_masks'
+        else:
+            moving_contrast_load = moving_contrast
+            fixed_contrast_load = fixed_contrast
+        moving_data_path = os.path.join(input_path, split, moving_contrast_load + '.npy')
+        fixed_data_path = os.path.join(input_path, split, fixed_contrast_load + '.npy')
+        print(f"Loading moving data from {moving_data_path}")
+        print(f"Loading fixed data from {fixed_data_path}")
 
         moving_data = np.load(moving_data_path)
         moving_data = (moving_data - np.min(moving_data)) / (np.max(moving_data) - np.min(moving_data))

@@ -19,16 +19,28 @@ def create_dataloader(dataset, dataset_opt, phase):
         raise NotImplementedError(
             'Dataloader [{:s}] is not found.'.format(phase))
 
-def create_dataset_2D(dataset_opt, phase):
+def create_dataset_2D(dataset_opt, phase, mri=False):
     '''create dataset'''
-    from data.RAFD_dataset import RAFDDataset as D
-    dataset = D(dataroot=dataset_opt['dataroot'],
-                split=phase
-                )
-    logger = logging.getLogger('base')
-    logger.info('Dataset [{:s} - {:s}] is created.'.format(dataset.__class__.__name__,
-                                                           dataset_opt['name']))
-    return dataset
+
+    if mri:
+        print("Creating MRI dataset")
+        from data.MRI_dataset import MRIDataset as D
+        dataset = D(dataroot=dataset_opt['dataroot'],
+                    split=phase
+                    )
+        logger = logging.getLogger('base')
+        logger.info('Dataset [{:s} - {:s}] is created.'.format(dataset.__class__.__name__,
+                                                               dataset_opt['name']))
+        return dataset
+    else:
+        from data.RAFD_dataset import RAFDDataset as D
+        dataset = D(dataroot=dataset_opt['dataroot'],
+                    split=phase
+                    )
+        logger = logging.getLogger('base')
+        logger.info('Dataset [{:s} - {:s}] is created.'.format(dataset.__class__.__name__,
+                                                            dataset_opt['name']))
+        return dataset
 
 
 def create_dataset_3D(dataset_opt, phase):

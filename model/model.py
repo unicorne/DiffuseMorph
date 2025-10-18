@@ -46,21 +46,26 @@ class DDPM(BaseModel):
         self.data = self.set_device(data)
 
     def optimize_parameters(self):
-        self.optG.zero_grad()
-        score, loss = self.netG(self.data)
-        self.score, self.out_M, self.flow = score
-        # need to average in multi-gpu
+            self.optG.zero_grad()
+            score, loss = self.netG(self.data)
+            self.score, self.out_M, self.flow = score
+            
+            # --- Add this line for debugging ---
+            print(f"Flow min: {self.flow.min()}, max: {self.flow.max()}, mean: {self.flow.mean()}")
+            # ------------------------------------
+            
+            # need to average in multi-gpu
 
-        # l_tot = loss
-        l_pix, l_sim, l_smt, l_tot = loss
-        l_tot.backward()
-        self.optG.step()
+            # l_tot = loss
+            l_pix, l_sim, l_smt, l_tot = loss
+            l_tot.backward()
+            self.optG.step()
 
-        # set log
-        self.log_dict['l_pix'] = l_pix.item()
-        self.log_dict['l_sim'] = l_sim.item()
-        self.log_dict['l_smt'] = l_smt.item()
-        self.log_dict['l_tot'] = l_tot.item()
+            # set log
+            self.log_dict['l_pix'] = l_pix.item()
+            self.log_dict['l_sim'] = l_sim.item()
+            self.log_dict['l_smt'] = l_smt.item()
+            self.log_dict['l_tot'] = l_tot.item()
 
     def test_generation(self, continuous=False):
         self.netG.eval()
@@ -105,10 +110,11 @@ class DDPM(BaseModel):
             min_max = (-1, 1)
         else:
             min_max = (0, 1)
-        out_dict['M'] = Metrics.tensor2im(self.data['M'].detach().float().cpu(), min_max=min_max)
-        out_dict['F'] = Metrics.tensor2im(self.data['F'].detach().float().cpu(), min_max=min_max)
-        out_dict['out_M'] = Metrics.tensor2im(self.out_M.detach().float().cpu(), min_max=(0, 1))
-        out_dict['flow'] = Metrics.tensor2im(self.flow.detach().float().cpu(), min_max=min_max)
+        out_dict['M'] = Metrics.tensor2im(self.data['M'][0:1].detach().float().cpu(), min_max=min_max)
+        out_dict['F'] = Metrics.tensor2im(self.data['F'][0:1].detach().float().cpu(), min_max=min_max)
+        out_dict['out_M'] = Metrics.tensor2im(self.out_M[0:1].detach().float().cpu(), min_max=(0, 1))
+        out_dict['flow'] = Metrics.tensor2im(self.flow[0:1].detach().float().cpu(), min_max=min_max)
+        return out_dict
         return out_dict
 
     def get_current_visuals(self, sample=False):
