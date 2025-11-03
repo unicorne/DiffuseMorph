@@ -1,6 +1,11 @@
-<img src="./img/representative.png">
-
 # DiffuseMorph
+
+
+
+
+# Original ReadMe
+
+<img src="./img/representative.png">
 
 This repository is the official implementation of "DiffuseMorph: Unsupervised Deformable Image Registration Using Diffusion Model" which is presented at ECCV 2022.
 
