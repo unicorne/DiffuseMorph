@@ -6,6 +6,7 @@ if path_to_pip_installs not in sys.path:
 import os
 import numpy as np
 from PIL import Image
+import argparse
 
 def prepare_data(input_path, output_path, moving_contrast, fixed_contrast, masks=False):
     """
@@ -61,3 +62,21 @@ def prepare_data(input_path, output_path, moving_contrast, fixed_contrast, masks
             #fixed_slice_normalized = (255.0 * (fixed_slice - np.min(fixed_slice)) / (np.max(fixed_slice) - np.min(fixed_slice))).astype(np.uint8)
             fixed_img = Image.fromarray(fixed_slice_normalized)
             fixed_img.save(os.path.join(output_split_path, f'fixed_{i}.png'))
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--input_path', type=str, required=False, help='Path to the input data containing train, val, test folders.')
+    parser.add_argument('--output_path', type=str, required=False, help='Path to save the processed data.')
+
+    args = parser.parse_args()
+    input_path = "/home/students/studweilc1/MU-Diff/data/my_data2"
+    output_path = "/home/students/studweilc1/DiffuseMorph/dataset/mu_diff_t1"
+    input_path = args.input_path
+    output_path = args.output_path
+    fixed_contrast = "DIXON"
+
+    for moving_contrast in ["T1_mapping_fl2d", "BOLD", "Diffusion"]:
+        output_path_contrast = os.path.join(output_path, moving_contrast + '_to_' + fixed_contrast)
+        prepare_data(input_path, output_path_contrast, moving_contrast, fixed_contrast)
+        prepare_data(input_path, output_path_contrast, moving_contrast, fixed_contrast, masks=True)

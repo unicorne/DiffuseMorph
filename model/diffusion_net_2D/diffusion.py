@@ -99,8 +99,9 @@ class GaussianDiffusion(nn.Module):
             self.loss_func = nn.MSELoss(reduction='mean').to(device)
         else:
             raise NotImplementedError()
-        self.loss_ncc = loss.crossCorrelation2D(1, kernel=(9, 9)).to(device)
+        #self.loss_ncc = loss.crossCorrelation2D(1, kernel=(9, 9)).to(device)
         self.loss_reg = loss.gradientLoss("l2").to(device)
+        self.loss_ncc = loss.MINDSSC2D().to(device) 
 
 
     def set_new_noise_schedule(self, schedule_opt, device):

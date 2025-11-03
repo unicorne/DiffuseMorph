@@ -17,6 +17,10 @@ from PIL import Image
 import numpy as np
 from monai.metrics import DiceMetric
 from model.deformation_net_2D import Dense2DSpatialTransformer
+import monai
+LNCC_loss = monai.losses.LocalNormalizedCrossCorrelationLoss(spatial_dims=2)
+MI_loss = monai.losses.GlobalMutualInformationLoss()
+SSIM_loss = monai.losses.ssim_loss.SSIMLoss(spatial_dims=2)
 
 def save_image(image_numpy, image_path):
     image_pil = Image.fromarray(image_numpy.astype('uint8'))
@@ -115,6 +119,12 @@ if __name__ == "__main__":
         dice_metric = DiceMetric(include_background=True, reduction="mean")
         initial_dice_scores = []
         registered_dice_scores = []
+        initial_ssims = []
+        registered_ssims = []
+        initial_lnccs = []
+        registered_lnccs = []
+        initial_mis = []
+        registered_mis = []
         stn = Dense2DSpatialTransformer()
 
         idx = 0
@@ -178,6 +188,24 @@ if __name__ == "__main__":
             initial_dice_score = dice_metric.aggregate().item()
             initial_dice_scores.append(initial_dice_score)
 
+            # --- SSIM Calculation ---
+            print(data_origin.shape, data_fixed.shape)
+            print(data_origin.dtype, data_fixed.dtype)
+            data_origin_torch = torch.from_numpy(data_origin).unsqueeze(0).unsqueeze(0).float().cuda()
+            data_fixed_torch = torch.from_numpy(data_fixed).unsqueeze(0).unsqueeze(0).float().cuda()
+            ssim_loss = SSIM_loss(data_origin_torch,
+                                 data_fixed_torch)
+            initial_ssims.append(ssim_loss.item())
+            # --- LNCC Calculation ---
+            lncc_loss = LNCC_loss(data_origin_torch,
+                                 data_fixed_torch)
+            initial_lnccs.append(lncc_loss.item())
+            # --- MI Calculation ---
+            mi_loss = MI_loss(data_origin_torch,
+                             data_fixed_torch)
+            initial_mis.append(mi_loss.item())
+
+
             # --- After Registration ---
             # Warp the moving mask
             warped_mask = stn(moving_mask, flow)
@@ -189,15 +217,47 @@ if __name__ == "__main__":
             dice_metric(y_pred=warped_mask_bin, y=fixed_mask_bin)
             registered_dice_score = dice_metric.aggregate().item()
             registered_dice_scores.append(registered_dice_score)
+            # --- SSIM Calculation ---
+            warped_image = stn(test_data['M'].cuda(), flow)
+            ssim_loss_reg = SSIM_loss(warped_image, test_data['F'].cuda())
+            registered_ssims.append(ssim_loss_reg.item())
+            # --- LNCC Calculation ---
+            lncc_loss_reg = LNCC_loss(warped_image, test_data['F'].cuda())
+            registered_lnccs.append(lncc_loss_reg.item())
+            # --- MI Calculation ---
+            mi_loss_reg = MI_loss(warped_image, test_data['F'].cuda())
+            registered_mis.append(mi_loss_reg.item())
             
             print(f"Dice score for {dataXinfo} to {dataYinfo}: Initial = {initial_dice_score:.4f}, Registered = {registered_dice_score:.4f}")
-
+            print(f"SSIM for {dataXinfo} to {dataYinfo}: Initial = {ssim_loss.item():.4f}, Registered = {ssim_loss_reg.item():.4f}")
+            print(f"LNCC for {dataXinfo} to {dataYinfo}: Initial = {lncc_loss.item():.4f}, Registered = {lncc_loss_reg.item():.4f}")
+            print(f"MI for {dataXinfo} to {dataYinfo}: Initial = {mi_loss.item():.4f}, Registered = {mi_loss_reg.item():.4f}")
 
         # --- Final Dice Score Comparison ---
         mean_initial_dice = np.mean(initial_dice_scores)
         std_initial_dice = np.std(initial_dice_scores)
         mean_registered_dice = np.mean(registered_dice_scores)
         std_registered_dice = np.std(registered_dice_scores)
+
+        print("\n--- Final Metric Results ---")
+        mean_initial_ssim = np.mean(initial_ssims)
+        std_initial_ssim = np.std(initial_ssims)
+        mean_registered_ssim = np.mean(registered_ssims)
+        std_registered_ssim = np.std(registered_ssims)
+        print(f"Initial SSIM (Before Registration): {mean_initial_ssim:.4f} (+/- {std_initial_ssim:.4f})")
+        print(f"Registered SSIM (After Registration): {mean_registered_ssim:.4f} (+/- {std_registered_ssim:.4f})")
+        mean_initial_lncc = np.mean(initial_lnccs)
+        std_initial_lncc = np.std(initial_lnccs)
+        mean_registered_lncc = np.mean(registered_lnccs)
+        std_registered_lncc = np.std(registered_lnccs)
+        print(f"Initial LNCC (Before Registration): {mean_initial_lncc:.4f} (+/- {std_initial_lncc:.4f})")
+        print(f"Registered LNCC (After Registration): {mean_registered_lncc:.4f} (+/- {std_registered_lncc:.4f})")
+        mean_initial_mi = np.mean(initial_mis)
+        std_initial_mi = np.std(initial_mis)
+        mean_registered_mi = np.mean(registered_mis)
+        std_registered_mi = np.std(registered_mis)
+        print(f"Initial MI (Before Registration): {mean_initial_mi:.4f} (+/- {std_initial_mi:.4f})")
+        print(f"Registered MI (After Registration): {mean_registered_mi:.4f} (+/- {std_registered_mi:.4f})")
         
         print("\n--- Final Dice Score Results ---")
         print(f"Initial Dice Score (Before Registration): {mean_initial_dice:.4f} (+/- {std_initial_dice:.4f})")

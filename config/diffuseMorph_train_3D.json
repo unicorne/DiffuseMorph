@@ -10,7 +10,7 @@
         "tb_logger": "tb_logger",
         "results": "results",
         "checkpoint": "checkpoint",
-        "resume_state": null //the deirectory of trained models
+        "resume_state": null
     },
     "datasets": {
         "centered": true,
@@ -40,7 +40,7 @@
                 10
             ],
             "res_blocks": 1,
-            "dropout": 0 //.2
+            "dropout": 0
         },
         "beta_schedule": {
             "train": {

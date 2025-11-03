@@ -47,11 +47,11 @@ if __name__ == "__main__":
         if phase != opt['phase']: continue
         if opt['phase'] == 'train':
             batchSize = opt['datasets']['train']['batch_size']
-            train_set = Data.create_dataset_2D(dataset_opt, phase, mri=True)
+            train_set = Data.create_dataset_2D(dataset_opt, phase, mri=False)
             train_loader = Data.create_dataloader(train_set, dataset_opt, phase)
             training_iters = int(ceil(train_set.data_len / float(batchSize)))
         elif opt['phase'] == 'test':
-            test_set = Data.create_dataset_2D(dataset_opt, phase, mri=True)
+            test_set = Data.create_dataset_2D(dataset_opt, phase, mri=False)
             test_loader = Data.create_dataloader(test_set, dataset_opt, phase)
     logger.info('Initial Dataset Finished')
 

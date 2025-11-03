@@ -4,3 +4,6 @@ DATASET/**
 experiments/*
 *.pyc
 slurm/*
+old/*
+old/**
+old/DATASET/*
